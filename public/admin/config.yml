@@ -3,6 +3,7 @@ backend:
   repo: g3ncu/cstweak
   branch: main
   base_url: https://www.cstweak.com.tr
+  auth_endpoint: api/auth
 
 display_url: https://www.cstweak.com.tr
 media_folder: public/images/uploads
