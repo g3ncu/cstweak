@@ -1,0 +1,22 @@
+backend:
+  name: github
+  repo: g3ncu/cstweak
+  branch: main
+  base_url: https://www.cstweak.com.tr
+
+display_url: https://www.cstweak.com.tr
+media_folder: public/images/uploads
+public_folder: /images/uploads
+
+locale: tr
+
+collections:
+  - name: "posts"
+    label: "Yazılar"
+    folder: "content/posts" # GitHub'da bu klasörün olduğundan emin ol!
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    fields:
+      - { label: "Başlık", name: "title", widget: "string" }
+      - { label: "Tarih", name: "date", widget: "datetime" }
+      - { label: "İçerik", name: "body", widget: "markdown" }

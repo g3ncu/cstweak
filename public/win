@@ -1,0 +1,474 @@
+#Requires -Version 5.1
+#Requires -RunAsAdministrator
+
+Clear-Host
+Write-Host @'
+  _____   ______  _   _   _____  _    _  ______  ______ 
+ / ____| |  ____|| \ | | / ____|| |  | ||  ____||___  / 
+| |  __  | |__   |  \| || |     | |  | || |__      / /  
+| | |_ | |  __|  | . ` || |     | |  | ||  __|    / /   
+| |__| | | |____ | |\  || |____ | |__| || |____  / /__  
+ \_____| |______||_| \_| \_____| \____/ |______||_____|
+CS2 LOW LATENCY EDITION (v2.2)
+==================================================================
+'@ -ForegroundColor Cyan
+
+# =============================================================================
+# FONKSIYONLAR (Registry Islemleri Icin)
+# =============================================================================
+function Set-Reg {
+    param($Path, $Name, $Value, $Type)
+    try {
+        if (!(Test-Path $Path)) { New-Item -Path $Path -Force -ErrorAction SilentlyContinue | Out-Null }
+        New-ItemProperty -Path $Path -Name $Name -Value $Value -PropertyType $Type -Force -ErrorAction Stop | Out-Null
+    }
+    catch {
+        Write-Host "   [!] Kayit defteri hatasi: $Name" -ForegroundColor DarkGray
+    }
+}
+
+# =============================================================================
+# 1. Yonetici Kontrolu
+# =============================================================================
+Write-Host "1. Yonetici kontrolu baslatiliyor..." -ForegroundColor Yellow
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Error "HATA: Yonetici haklari gerekli. Lutfen sag tiklayip 'Yonetici Olarak Calistir' deyin."
+    Start-Sleep -Seconds 5
+    Exit 1
+}
+Write-Host "   Yonetici haklari onaylandi." -ForegroundColor Green
+
+# =============================================================================
+# Script Baslangic
+# =============================================================================
+Write-Host "==================================================================" -ForegroundColor Cyan
+Write-Host " GENCUEZ (v2.2 CS2 LOW LATENCY EDITION)" -ForegroundColor Cyan
+Write-Host " Tam kapsamli servis listesi ve O&O ayarlari yukleniyor..." -ForegroundColor Cyan
+Write-Host "==================================================================" -ForegroundColor Cyan
+Start-Sleep -Seconds 2
+
+# =============================================================================
+# 2. Sistem Geri Yukleme
+# =============================================================================
+Write-Host "`n2. Sistem Geri Yukleme Noktasi..." -ForegroundColor Yellow
+try {
+    Checkpoint-Computer -Description "GENCUEZ_CStweakcom_Oncesi" -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop
+    Write-Host "   Geri yukleme noktasi olusturuldu." -ForegroundColor Green
+}
+catch {
+    Write-Host "   UYARI: Geri yukleme noktasi olusturulamadi (Servis kapali olabilir)." -ForegroundColor Magenta
+}
+
+# =============================================================================
+# 3. Temp Temizligi
+# =============================================================================
+Write-Host "`n3. Gecici dosyalar temizleniyor..." -ForegroundColor Yellow
+Remove-Item -Path $env:TEMP\* -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "C:\Windows\Temp\*" -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host "   Temp temizlendi." -ForegroundColor Green
+
+# =============================================================================
+# 4. Guc Ayarlari
+# =============================================================================
+Write-Host "`n4. Guc ayarlari..." -ForegroundColor Yellow
+try {
+    $HighPerfGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
+    powercfg /SETACTIVE $HighPerfGuid | Out-Null
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "DisplayParameters" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Power" -Name "PlatformAoAcOverride" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue
+    Write-Host "   Guc plani aktif." -ForegroundColor Green
+}
+catch {
+    Write-Host "   Guc ayarlari uygulanamadi." -ForegroundColor Red
+}
+
+# =============================================================================
+# 5. O&O SHUTUP10++ ENTEGRASYONU (Senin Ayarlarin)
+# =============================================================================
+Write-Host "`n5. O&O ShutUp10++ Ayarlari Uygulaniyor..." -ForegroundColor Yellow
+
+# --- CORTANA ve SEARCH ---
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\InputPersonalization" "AllowInputPersonalization" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowSearchToUseLocation" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" "DisableWebSearch" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" "ConnectedSearchUseWeb" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "AllowSpeechModelUpdate" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCloudSearch" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search" "AllowCortanaAboveLock" 0 "DWord"
+
+# --- PRIVACY GENEL ---
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\TabletPC" "PreventHandwritingDataSharing" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\HandwritingErrorReports" "PreventHandwritingErrorReports" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppCompat" "DisableInventory" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization" "NoLockScreenCamera" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AdvertisingInfo" "Enabled" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Bluetooth" "PushAdvertising" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\SQMClient\Windows" "CEIPEnable" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Messaging" "AllowMessageSync" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting" "Disabled" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Biometrics" "Enabled" 0 "DWord"
+
+# --- ACTIVITY HISTORY ---
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" "PublishUserActivities" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" "UploadUserActivities" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" "EnableActivityFeed" 0 "DWord"
+Set-Reg "HKCU:\Software\Microsoft\Clipboard" "EnableClipboardHistory" 1 "DWord"
+Set-Reg "HKCU:\Software\Microsoft\Clipboard" "EnableCloudClipboard" 0 "DWord"
+
+# --- APP PRIVACY (ConsentStore) ---
+$ConsentPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore"
+# Deny Listesi
+Set-Reg "$ConsentPath\userAccountInformation" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\appDiagnostics" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\location" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\activity" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\contacts" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\appointments" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\phoneCall" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\phoneCallHistory" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\email" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\tasks" "Value" "Deny" "String"
+Set-Reg "$ConsentPath\chat" "Value" "Deny" "String"
+# Allow Listesi
+Set-Reg "$ConsentPath\webcam" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\microphone" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\userNotificationListener" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\bluetoothSync" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\documentsLibrary" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\picturesLibrary" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\videosLibrary" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\broadFileSystemAccess" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\gazeInput" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\graphicsCaptureWithoutBorder" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\musicLibrary" "Value" "Allow" "String"
+Set-Reg "$ConsentPath\downloadsFolder" "Value" "Allow" "String"
+
+# --- SECURITY ve EXPLORER ---
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CredUI" "DisablePasswordReveal" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppCompat" "DisableUAR" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection" "AllowTelemetry" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\WMDRM" "DisableOnline" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive" "DisableMeteredNetworkFileSync" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\OneDrive" "DisableFileSyncNGSC" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SpyNetReporting" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet" "SubmitSamplesConsent" 2 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Reporting" "DisableGenericReports" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\System" "EnableMmx" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer" "HideSCAMeetNow" 1 "DWord"
+
+# --- AI, LOCATION ve UPDATES ---
+# AI - BLOCKED
+Set-Reg "HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot" "TurnOffWindowsCopilot" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI" "DisableRecall" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppPrivacy" "DisableImageCreator" 1 "DWord"
+
+# Location Services - BLOCKED (Stutter ve Gecikme Onleme)
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" "DisableLocation" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" "DisableLocationScripting" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors" "DisableSensors" 1 "DWord"
+# lfsvc trigger duzeltmesi
+Set-Reg "HKLM:\SYSTEM\CurrentControlSet\Services\lfsvc" "Start" 4 "DWord"
+
+# Windows Update - OPTIMIZED (Arka plan indirmeleri kapatildi)
+Set-Reg "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\DeliveryOptimization\Config" "DODownloadMode" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "AllowSpeechModelUpdate" 0 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "DeferFeatureUpdates" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate" "ExcludeWUDriversInQualityUpdate" 1 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\WindowsStore" "AutoDownload" 2 "DWord"
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsUpdate\AU" "NoAutoUpdate" 1 "DWord"
+
+# --- GAMING (OYUN MODU KAYITLARI) ---
+Set-Reg "HKLM:\SOFTWARE\Policies\Microsoft\Windows\GameDVR" "AllowGameDVR" 0 "DWord"
+
+Write-Host "   O&O Ayarlari tamamlandi." -ForegroundColor Green
+
+# =============================================================================
+# 6. GENCUEZ v2.0 ORIJINAL KOD BLOGU (Gorevler & UI)
+# =============================================================================
+Write-Host "`n6. Explorer, UI ve Orijinal GENCUEZ Optimizasyonlari..." -ForegroundColor Yellow
+try {
+    # Taskbar / Search / StickyKeys
+    $RegAdvanced = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search" -Name "BingSearchEnabled" -Value 0 -Type DWord -Force
+    Set-ItemProperty -Path "HKCU:\Control Panel\Accessibility\StickyKeys" -Name "Flags" -Value "58" -Type String -Force
+    Set-ItemProperty -Path $RegAdvanced -Name "ShowTaskViewButton" -Value 0 -Type DWord -Force
+    Set-ItemProperty -Path $RegAdvanced -Name "LaunchTo" -Value 1 -Type DWord -Force
+    Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\OperationStatusManager" -Name "EnthusiastMode" -Value 1 -Type DWord -Force
+    
+    # People Band
+    $PeoplePath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\People"
+    if (!(Test-Path $PeoplePath)) { New-Item -Path $PeoplePath -Force | Out-Null }
+    Set-ItemProperty -Path $PeoplePath -Name "PeopleBand" -Value 0 -Type DWord -Force
+
+    # Long Paths
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -Type DWord -Force
+    Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "AutoEndTasks" -Value 1 -Type String -Force
+    
+    Write-Host "   UI ayarlari tamam." -ForegroundColor Green
+}
+catch {
+    Write-Host "   UI Hatasi." -ForegroundColor Red
+}
+
+# =============================================================================
+# 7. Gorev Zamanlayici (Orijinal Tam Liste)
+# =============================================================================
+Write-Host "`n7. Gorev Zamanlayici temizligi (Tam Liste)..." -ForegroundColor Yellow
+$ExtendedTasks = @(
+    "\Microsoft\Windows\Application Experience\MareBackup",
+    "\Microsoft\Windows\Application Experience\StartupAppTask",
+    "\Microsoft\Windows\Application Experience\PcaPatchDbTask",
+    "\Microsoft\Windows\Autochk\Proxy",
+    "\Microsoft\Windows\Customer Experience Improvement Program\Consolidator",
+    "\Microsoft\Windows\Customer Experience Improvement Program\UsbCeip",
+    "\Microsoft\Windows\DiskDiagnostic\Microsoft-Windows-DiskDiagnosticDataCollector",
+    "\Microsoft\Windows\Feedback\Siuf\DmClient",
+    "\Microsoft\Windows\Feedback\Siuf\DmClientOnScenarioDownload",
+    "\Microsoft\Windows\Windows Error Reporting\QueueReporting",
+    "\Microsoft\Windows\Maps\MapsUpdateTask"
+)
+
+foreach ($taskPath in $ExtendedTasks) {
+    try {
+        Disable-ScheduledTask -TaskPath (Split-Path $taskPath -Parent) -TaskName (Split-Path $taskPath -Leaf) -ErrorAction SilentlyContinue | Out-Null
+        Write-Host "   Gorev devre disi: $taskPath" -ForegroundColor Green
+    }
+    catch {
+        # Silent
+    }
+}
+
+# =============================================================================
+# 8. Ag ve Performans (NDU, Throttling)
+# =============================================================================
+Write-Host "`n8. Ag ve Performans optimizasyonlari..." -ForegroundColor Yellow
+try {
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name "SystemResponsiveness" -Value 0 -Type DWord -Force
+    Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile" -Name "NetworkThrottlingIndex" -Value 4294967295 -Type DWord -Force
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Ndu" -Name "Start" -Value 4 -Type DWord -Force
+   
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters" -Name "IRPStackSize" -Value 30 -Type DWord -Force
+
+    # --- YENI EKLENEN PERFORMANCE BOOST VE PRIORITY AYARLARI ---
+    # Gizli Islemci Performans Modu Kilidini Acma (Processor Performance Boost Mode)
+    Set-Reg "HKLM:\SYSTEM\CurrentControlSet\Control\Power\PowerSettings\54533251-82be-4824-96c1-47b60b740d00\be337238-0d82-4146-a960-4f3749d470c7" "Attributes" 2 "DWord"
+    
+    # On Plandaki Oyuna Maksimum CPU Onceligi Tanimlama (Win32PrioritySeparation - Hex 26 / Dec 38)
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Name "Win32PrioritySeparation" -Value 38 -Type DWord -Force
+
+    Write-Host "   Ag, Win32Priority ve Performance Boost ayarlari uygulandi." -ForegroundColor Green
+} catch {
+    Write-Host "   Ag ve Performans ayarlari hatasi." -ForegroundColor Red
+}
+
+# =============================================================================
+# 9. Kapsamli Servis Yapilandirmasi (TUM LISTE)
+# =============================================================================
+Write-Host "`n9. Kapsamli Servis Yapilandirmasi (Heavy Mode)..." -ForegroundColor Yellow
+Write-Host "   UYARI: Yuzlerce servis ayarlaniyor (Update ve Konum haric)." -ForegroundColor Magenta
+
+$ServiceConfig = @(
+    @{Name="AJRouter"; Type="Disabled"}, @{Name="ALG"; Type="Manual"}, @{Name="AppIDSvc"; Type="Manual"},
+    @{Name="AppMgmt"; Type="Manual"}, @{Name="AppReadiness"; Type="Manual"}, @{Name="AppVClient"; Type="Disabled"},
+    @{Name="Appinfo"; Type="Manual"}, @{Name="AssignedAccessManagerSvc"; Type="Disabled"}, @{Name="AudioEndpointBuilder"; Type="Automatic"},
+    @{Name="AudioSrv"; Type="Automatic"}, @{Name="AxInstSV"; Type="Manual"}, @{Name="BDESVC"; Type="Manual"},
+    @{Name="BFE"; Type="Automatic"}, @{Name="BITS"; Type="AutomaticDelayedStart"}, @{Name="BTAGService"; Type="Manual"},
+    @{Name="BrokerInfrastructure"; Type="Automatic"}, @{Name="Browser"; Type="Manual"}, @{Name="BthHFSrv"; Type="Automatic"},
+    @{Name="CDPSvc"; Type="Disabled"}, @{Name="COMSysApp"; Type="Manual"}, @{Name="CertPropSvc"; Type="Manual"},
+    @{Name="ClipSVC"; Type="Manual"}, @{Name="CoreMessagingRegistrar"; Type="Automatic"}, @{Name="CryptSvc"; Type="Automatic"},
+    @{Name="CscService"; Type="Manual"}, @{Name="DPS"; Type="Disabled"}, @{Name="DcomLaunch"; Type="Automatic"},
+    @{Name="DcpSvc"; Type="Manual"}, @{Name="DevQueryBroker"; Type="Manual"}, @{Name="DeviceAssociationService"; Type="Manual"},
+    @{Name="DeviceInstall"; Type="Manual"}, @{Name="Dhcp"; Type="Automatic"}, @{Name="DialogBlockingService"; Type="Disabled"},
+    @{Name="DispBrokerDesktopSvc"; Type="Automatic"}, @{Name="DisplayEnhancementService"; Type="Manual"}, @{Name="DmEnrollmentSvc"; Type="Manual"},
+    @{Name="Dnscache"; Type="Automatic"}, @{Name="EFS"; Type="Manual"}, @{Name="EapHost"; Type="Manual"},
+    @{Name="EntAppSvc"; Type="Manual"}, @{Name="EventLog"; Type="Automatic"}, @{Name="EventSystem"; Type="Automatic"},
+    @{Name="FDResPub"; Type="Manual"}, @{Name="Fax"; Type="Manual"}, @{Name="FontCache"; Type="Automatic"},
+    @{Name="FrameServer"; Type="Manual"}, @{Name="FrameServerMonitor"; Type="Manual"}, @{Name="GraphicsPerfSvc"; Type="Manual"},
+    @{Name="HomeGroupListener"; Type="Manual"}, @{Name="HomeGroupProvider"; Type="Manual"}, @{Name="HvHost"; Type="Manual"},
+    @{Name="IEEtwCollectorService"; Type="Manual"}, @{Name="InstallService"; Type="Manual"}, @{Name="IpxlatCfgSvc"; Type="Manual"},
+    @{Name="KtmRm"; Type="Manual"}, @{Name="LSM"; Type="Automatic"}, @{Name="LanmanServer"; Type="Automatic"},
+    @{Name="LanmanWorkstation"; Type="Automatic"}, @{Name="LicenseManager"; Type="Manual"}, @{Name="LxpSvc"; Type="Manual"},
+    @{Name="MSDTC"; Type="Manual"}, @{Name="MSiSCSI"; Type="Manual"}, @{Name="MapsBroker"; Type="Disabled"},
+    @{Name="McpManagementService"; Type="Manual"}, @{Name="MicrosoftEdgeElevationService"; Type="Manual"}, @{Name="MixedRealityOpenXRSvc"; Type="Manual"},
+    @{Name="MpsSvc"; Type="Automatic"}, @{Name="MsKeyboardFilter"; Type="Manual"}, @{Name="NaturalAuthentication"; Type="Manual"},
+    @{Name="NcaSvc"; Type="Manual"}, @{Name="NcbService"; Type="Manual"}, @{Name="NcdAutoSetup"; Type="Manual"},
+    @{Name="NetSetupSvc"; Type="Manual"}, @{Name="NetTcpPortSharing"; Type="Disabled"}, @{Name="Netman"; Type="Manual"},
+    @{Name="NgcCtnrSvc"; Type="Manual"}, @{Name="NgcSvc"; Type="Manual"}, @{Name="NlaSvc"; Type="Manual"},
+    @{Name="PNRPAutoReg"; Type="Manual"}, @{Name="PNRPsvc"; Type="Manual"}, @{Name="PcaSvc"; Type="Disabled"},
+    @{Name="PeerDistSvc"; Type="Manual"}, @{Name="PerfHost"; Type="Manual"}, @{Name="PhoneSvc"; Type="Manual"},
+    @{Name="PlugPlay"; Type="Manual"}, @{Name="PolicyAgent"; Type="Manual"}, @{Name="Power"; Type="Automatic"},
+    @{Name="PrintNotify"; Type="Manual"}, @{Name="ProfSvc"; Type="Automatic"}, @{Name="PushToInstall"; Type="Manual"},
+    @{Name="QWAVE"; Type="Manual"}, @{Name="RasAuto"; Type="Manual"}, @{Name="RasMan"; Type="Manual"},
+    @{Name="RemoteAccess"; Type="Disabled"}, @{Name="RemoteRegistry"; Type="Disabled"}, @{Name="RetailDemo"; Type="Manual"},
+    @{Name="RmSvc"; Type="Manual"}, @{Name="RpcEptMapper"; Type="Automatic"}, @{Name="RpcLocator"; Type="Manual"},
+    @{Name="RpcSs"; Type="Automatic"}, @{Name="SCPolicySvc"; Type="Manual"}, @{Name="SCardSvr"; Type="Manual"},
+    @{Name="SDRSVC"; Type="Manual"}, @{Name="SEMgrSvc"; Type="Manual"}, @{Name="SENS"; Type="Automatic"},
+    @{Name="SNMPTRAP"; Type="Manual"}, @{Name="SSDPSRV"; Type="Manual"}, @{Name="SamSs"; Type="Automatic"},
+    @{Name="ScDeviceEnum"; Type="Manual"}, @{Name="Schedule"; Type="Automatic"}, @{Name="SecurityHealthService"; Type="Manual"},
+    @{Name="Sense"; Type="Manual"}, @{Name="SensorDataService"; Type="Disabled"}, @{Name="SensorService"; Type="Disabled"},
+    @{Name="SensrSvc"; Type="Disabled"}, @{Name="SessionEnv"; Type="Manual"}, @{Name="SharedAccess"; Type="Manual"},
+    @{Name="SharedRealitySvc"; Type="Manual"}, @{Name="ShellHWDetection"; Type="Automatic"}, @{Name="SmsRouter"; Type="Disabled"},
+    @{Name="Spooler"; Type="Manual"}, @{Name="SstpSvc"; Type="Manual"}, @{Name="StiSvc"; Type="Manual"},
+    @{Name="StorSvc"; Type="Manual"}, @{Name="SystemEventsBroker"; Type="Automatic"}, @{Name="TabletInputService"; Type="Manual"},
+    @{Name="TapiSrv"; Type="Manual"}, @{Name="Themes"; Type="Automatic"}, @{Name="TieringEngineService"; Type="Manual"},
+    @{Name="TimeBroker"; Type="Manual"}, @{Name="TimeBrokerSvc"; Type="Manual"}, @{Name="TokenBroker"; Type="Manual"},
+    @{Name="TrkWks"; Type="Disabled"}, @{Name="TroubleshootingSvc"; Type="Manual"}, @{Name="TrustedInstaller"; Type="Manual"},
+    @{Name="UI0Detect"; Type="Manual"}, @{Name="UevAgentService"; Type="Disabled"}, @{Name="UmRdpService"; Type="Manual"},
+    @{Name="UserManager"; Type="Automatic"}, @{Name="UsoSvc"; Type="Manual"}, @{Name="VGAuthService"; Type="Automatic"},
+    @{Name="VMTools"; Type="Automatic"}, @{Name="VSS"; Type="Manual"}, @{Name="VacSvc"; Type="Manual"},
+    @{Name="WEPHOSTSVC"; Type="Manual"}, @{Name="WFDSConMgrSvc"; Type="Manual"}, @{Name="WMPNetworkSvc"; Type="Manual"},
+    @{Name="WManSvc"; Type="Manual"}, @{Name="WPDBusEnum"; Type="Manual"}, @{Name="WSService"; Type="Manual"},
+    @{Name="WaaSMedicSvc"; Type="Manual"}, @{Name="WalletService"; Type="Manual"}, @{Name="WarpJITSvc"; Type="Manual"},
+    @{Name="WbioSrvc"; Type="Manual"}, @{Name="Wcmsvc"; Type="Automatic"}, @{Name="WcsPlugInService"; Type="Manual"},
+    @{Name="WdNisSvc"; Type="Manual"}, @{Name="WdiServiceHost"; Type="Manual"}, @{Name="WdiSystemHost"; Type="Manual"},
+    @{Name="WebClient"; Type="Manual"}, @{Name="Wecsvc"; Type="Manual"}, @{Name="WiaRpc"; Type="Manual"},
+    @{Name="WinDefend"; Type="Automatic"}, @{Name="WinHttpAutoProxySvc"; Type="Manual"}, @{Name="WinRM"; Type="Manual"},
+    @{Name="Winmgmt"; Type="Automatic"}, @{Name="WpcMonSvc"; Type="Manual"}, @{Name="XblAuthManager"; Type="Manual"}, @{Name="XblGameSave"; Type="Manual"}, @{Name="XboxGipSvc"; Type="Manual"},
+    @{Name="XboxNetApiSvc"; Type="Manual"}, @{Name="autotimesvc"; Type="Manual"}, @{Name="bthserv"; Type="Manual"},
+    @{Name="cloudidsvc"; Type="Manual"}, @{Name="dcsvc"; Type="Manual"}, @{Name="defragsvc"; Type="Manual"}, @{Name="diagsvc"; Type="Manual"}, @{Name="dot3svc"; Type="Manual"},
+    @{Name="edgeupdate"; Type="Manual"}, @{Name="edgeupdatem"; Type="Manual"}, @{Name="embeddedmode"; Type="Manual"},
+    @{Name="fdPHost"; Type="Manual"}, @{Name="fhsvc"; Type="Manual"}, @{Name="gpsvc"; Type="Automatic"},
+    @{Name="hidserv"; Type="Manual"}, @{Name="icssvc"; Type="Manual"}, @{Name="iphlpsvc"; Type="Automatic"},
+    @{Name="lfsvc"; Type="Disabled"},
+    @{Name="lltdsvc"; Type="Manual"}, @{Name="lmhosts"; Type="Manual"},
+    @{Name="mpssvc"; Type="Automatic"}, @{Name="msiserver"; Type="Manual"}, @{Name="netprofm"; Type="Manual"},
+    @{Name="nsi"; Type="Automatic"}, @{Name="p2pimsvc"; Type="Manual"}, @{Name="p2psvc"; Type="Manual"},
+    @{Name="perceptionsimulation"; Type="Manual"}, @{Name="pla"; Type="Manual"}, @{Name="seclogon"; Type="Manual"},
+    @{Name="shpamsvc"; Type="Disabled"}, @{Name="smphost"; Type="Manual"}, @{Name="spectrum"; Type="Manual"},
+    @{Name="sppsvc"; Type="AutomaticDelayedStart"}, @{Name="ssh-agent"; Type="Disabled"}, @{Name="svsvc"; Type="Manual"},
+    @{Name="swprv"; Type="Manual"}, @{Name="tiledatamodelsvc"; Type="Automatic"}, @{Name="tzautoupdate"; Type="Manual"},
+    @{Name="uhssvc"; Type="Disabled"}, @{Name="upnphost"; Type="Manual"}, @{Name="vds"; Type="Manual"},
+    @{Name="vm3dservice"; Type="Manual"}, @{Name="vmicguestinterface"; Type="Manual"}, @{Name="vmicheartbeat"; Type="Manual"},
+    @{Name="vmickvpexchange"; Type="Manual"}, @{Name="vmicrdv"; Type="Manual"}, @{Name="vmicshutdown"; Type="Manual"},
+    @{Name="vmictimesync"; Type="Manual"}, @{Name="vmicvmsession"; Type="Manual"}, @{Name="vmicvss"; Type="Manual"},
+    @{Name="vmvss"; Type="Manual"}, @{Name="wbengine"; Type="Manual"}, @{Name="wcncsvc"; Type="Manual"},
+    @{Name="webthreatdefsvc"; Type="Manual"}, @{Name="wercplsupport"; Type="Manual"}, @{Name="wisvc"; Type="Manual"},
+    @{Name="wlidsvc"; Type="Manual"}, @{Name="wlpasvc"; Type="Manual"}, @{Name="wmiApSrv"; Type="Manual"},
+    @{Name="workfolderssvc"; Type="Manual"}, @{Name="wscsvc"; Type="AutomaticDelayedStart"}, @{Name="wuauserv"; Type="Manual"},
+    @{Name="wudfsvc"; Type="Manual"}
+)
+
+foreach ($srv in $ServiceConfig) {
+    try {
+        $serviceObj = Get-Service -Name $srv.Name -ErrorAction SilentlyContinue
+        if ($serviceObj) {
+            Set-Service -Name $srv.Name -StartupType $srv.Type -ErrorAction SilentlyContinue
+            if ($srv.Type -eq "Disabled" -and $serviceObj.Status -eq "Running") {
+                Stop-Service -Name $srv.Name -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    catch {}
+}
+Write-Host "   Servisler yapilandirildi." -ForegroundColor Green
+
+# =============================================================================
+# 10. OneDrive Kaldirma
+# =============================================================================
+Write-Host "`n10. OneDrive Temizligi..." -ForegroundColor Yellow
+try {
+    taskkill.exe /F /IM OneDrive.exe /T > $null 2>&1
+    $OneDriveSetup = "$env:SystemRoot\System32\OneDriveSetup.exe"
+    if (Test-Path $OneDriveSetup) {
+        Start-Process $OneDriveSetup -ArgumentList "/uninstall /silent /force" -Wait
+    }
+    Remove-Item -Path "HKCU:\Software\Microsoft\OneDrive" -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host "   OneDrive temizlendi." -ForegroundColor Green
+}
+catch {
+    Write-Host "   OneDrive Hatasi." -ForegroundColor Red
+}
+
+# =============================================================================
+# 11. HAGS (Donanim Hizlandirmali GPU Zamanlamasi)
+# =============================================================================
+Write-Host "`n11. HAGS (GPU Zamanlamasi) aciliyor..." -ForegroundColor Yellow
+try {
+    $HagsPath = "HKLM:\SYSTEM\CurrentControlSet\Control\GraphicsDrivers"
+    
+    # Eger yol yoksa olustur
+    if (!(Test-Path $HagsPath)) { 
+        New-Item -Path $HagsPath -Force | Out-Null 
+    }
+
+    # HwSchMode: 2 = Acik (On), 1 = Kapali (Off)
+    Set-ItemProperty -Path $HagsPath -Name "HwSchMode" -Value 2 -Type DWord -Force -ErrorAction Stop
+    
+    Write-Host "   HAGS acildi (%1 Low FPS stabilizasyonu icin - Etki icin Restart sart)." -ForegroundColor Green
+}
+catch {
+    Write-Host "   HAGS ayari uygulanamadi." -ForegroundColor Red
+}
+
+# =============================================================================
+# 12. Windows 11 Gecikme & Ekstra Sistem Ayarlari
+# =============================================================================
+Write-Host "`n12. Windows 11 Gecikme & Ekstra Sistem Ayarlari..." -ForegroundColor Yellow
+try {
+    # Platform Zamanlayici Kilidini Acma (Micro-Stutter Cozumu)
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\kernel" -Name "GlobalTimerResolutionRequests" -Value 1 -Type DWord -Force
+    
+    # Windows NDU Servisini Kapatma (Gizli Ag Verisi Toplama ve Bellek Sizintisi Onleme)
+    Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\Ndu" -Name "Start" -Value 4 -Type DWord -Force
+    
+    # Telemetri ve Veri Toplamayi Durdurma (DiagTrack)
+    $DiagTrackService = Get-Service -Name "DiagTrack" -ErrorAction SilentlyContinue
+    if ($DiagTrackService) {
+        Set-Service -Name "DiagTrack" -StartupType Disabled -ErrorAction SilentlyContinue
+        if ($DiagTrackService.Status -eq "Running") {
+            Stop-Service -Name "DiagTrack" -Force -ErrorAction SilentlyContinue
+        }
+    }
+    Write-Host "   Ekstra Windows 11 gecikme ve telemetri ayarlari tamamlandi." -ForegroundColor Green
+}
+catch {
+    Write-Host "   Ekstra ayarlar uygulanirken bir hata olustu." -ForegroundColor Red
+}
+
+# =============================================================================
+# 13. Ses Gelistirmelerini Kapatma (Disable All Enhancements)
+# =============================================================================
+Write-Host "`n13. Ses cihazlari icin gelistirmeler devre disi birakiliyor..." -ForegroundColor Yellow
+try {
+    # Windows'taki tum ses cikis (Render) cihazlarinin bulundugu dizin
+    $RenderDevicesPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render"
+    
+    if (Test-Path $RenderDevicesPath) {
+        $AudioDevices = Get-ChildItem -Path $RenderDevicesPath
+        
+        # Her bir cihazin (kulaklik/hoparlor vb.) icine tek tek gir
+        foreach ($Device in $AudioDevices) {
+            $FxPropertiesPath = "$($Device.PSPath)\FxProperties"
+            
+            if (Test-Path $FxPropertiesPath) {
+                # '{1da5d803-d492-4edd-8c23-e0c0ffee7f0e},5' anahtari Disable all enhancements kutusunu temsil eder
+                # Degeri 1 yapmak kutuyu isaretler (Gelistirmeleri devre disi birakir)
+                New-ItemProperty -Path $FxPropertiesPath -Name "{1da5d803-d492-4edd-8c23-e0c0ffee7f0e},5" -Value 1 -PropertyType DWord -Force -ErrorAction SilentlyContinue | Out-Null
+            }
+        }
+        Write-Host "   Tum ses cihazlari icin gelistirmeler kapatildi (audiodg.exe yuku hafifletildi)." -ForegroundColor Green
+    }
+}
+catch {
+    Write-Host "   Ses ayarlari uygulanirken bir hata olustu." -ForegroundColor Red
+}
+
+# =============================================================================
+# BITIS
+# =============================================================================
+Write-Host "`n==================================================================" -ForegroundColor Cyan
+Write-Host " GENCUEZ (CS2 LOW LATENCY EDITION) TAMAMLANDI" -ForegroundColor Green
+Write-Host "==================================================================" -ForegroundColor Cyan
+Write-Host " Tum servisler ve O&O ayarlari islendi." -ForegroundColor Yellow
+Write-Host " Lutfen bilgisayari YENIDEN BASLATIN." -ForegroundColor Yellow
+Write-Host "==================================================================" -ForegroundColor Cyan
+
+$Restart = Read-Host "`n Simdi yeniden baslatilsin mi? (E/H)"
+if ($Restart -eq 'E' -or $Restart -eq 'e') {
+    Restart-Computer -Force
+}
+else {
+    Write-Host "   Cikis icin bir tusa basin..."
+    [Console]::ReadKey($true) | Out-Null
+    Exit
+}
