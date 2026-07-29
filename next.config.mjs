@@ -2,7 +2,6 @@
 const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
-    // Dışarıdan gelen resimlere izin vermen gerekiyor
     remotePatterns: [
       {
         protocol: 'https',
@@ -14,6 +13,14 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ['lucide-react'],
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/auth',
+        destination: '/api/auth',
+      },
+    ];
   },
 };
 
